@@ -1,0 +1,67 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build & Publish
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-gnu
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwayland-dev \
+            libxkbcommon-dev \
+            libxkbcommon-x11-dev \
+            libegl1-mesa-dev \
+            libgl1-mesa-dev \
+            pkg-config
+
+      - name: Build release
+        run: cargo build --release --target x86_64-unknown-linux-gnu
+
+      - name: Rename binary
+        run: |
+          mkdir -p linux-publish
+          cp target/x86_64-unknown-linux-gnu/release/aur-helper linux-publish/aur-helper
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "AUR Helper ${{ github.ref_name }}"
+          body: |
+            ## AUR Helper ${{ github.ref_name }}
+
+            ### Instalação
+            1. Baixe o arquivo `aur-helper` abaixo
+            2. Dê permissão de execução:
+            ```bash
+            chmod +x aur-helper
+            ```
+            3. Execute:
+            ```bash
+            ./aur-helper
+            ```
+            Ou instale no sistema:
+            ```bash
+            sudo install -Dm755 aur-helper /usr/local/bin/aur-helper
+            ```
+          files: linux-publish/aur-helper
+          draft: false
+          prerelease: false
